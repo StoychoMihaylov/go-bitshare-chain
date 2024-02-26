@@ -1,14 +1,15 @@
 package services
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/sha256"
-	"encoding/hex"
-	"fmt"
-	"math/big"
-	"strings"
-	"time"
+	ecdsa "crypto/ecdsa"
+	elliptic "crypto/elliptic"
+	rand "crypto/rand"
+	sha256 "crypto/sha256"
+	hex "encoding/hex"
+	fmt "fmt"
+	big "math/big"
+	strings "strings"
+	time "time"
 )
 
 type BlockService interface {
@@ -18,21 +19,21 @@ type BlockService interface {
 	MineBlock(difficulty int64)
 	IsBlockSignatureValid() bool
 	IsBlockMiner(minerAddress string) bool
-	GetHash(hashAlgorithm string, input string) string //hashAlgorithm GO alternative of Cyrptography.HashAlgorithm in C#
+	GetHash(hashAlgorithm *sha256.Hash, input string) string //hashAlgorithm GO alternative of Cyrptography.HashAlgorithm in C#
 }
 
 type Block struct {
 	TimeStamp      time.Time
 	Transactions   []BlockTransaction
-	Hash           string
 	PreviousHash   string
+	Hash           string
 	Nonce          int
-	BlockSignature []byte
 	BlockMiner     string
+	BlockSignature []byte
 	SigningKey     *ecdsa.PrivateKey
 }
 
-func NewBlock(timeStamp time.Time, transactions []BlockTransaction, previousHash, miningRewardAddress string, signingKey *ecdsa.PrivateKey) *Block {
+func NewBlock(timeStamp time.Time, transactions []BlockTransaction, previousHash string, miningRewardAddress string, signingKey *ecdsa.PrivateKey) *Block {
 	block := &Block{
 		TimeStamp:    timeStamp,
 		Transactions: transactions,
@@ -45,43 +46,55 @@ func NewBlock(timeStamp time.Time, transactions []BlockTransaction, previousHash
 	return block
 }
 
-func (b *Block) CalculateHash() string {
+func (block *Block) CalculateHash() string {
 	sha256Hash := sha256.New()
-	transactionsStringData := b.GetTransactionsStringData()
-	data := fmt.Sprintf("%v%v%v%v", b.TimeStamp, b.PreviousHash, transactionsStringData, b.Nonce)
+	transactionsStringData := block.GetTransactionsStringData()
+	data := fmt.Sprintf("%v%v%v%v", block.TimeStamp, block.PreviousHash, transactionsStringData, block.Nonce)
 	return GetHash(sha256Hash, data)
 }
 
-func (b *Block) GetTransactionsStringData() string {
+func (block *Block) GetTransactionsStringData() string {
 	var transactionsStringData strings.Builder
-	for _, transaction := range b.Transactions {
-		transactionsStringData.WriteString(transaction.Signature)
+	for _, transaction := range block.Transactions {
+		transactionsStringData.WriteString(hex.EncodeToString(transaction.Signature))
 	}
+
 	return transactionsStringData.String()
 }
 
-func (b *Block) HasValidTransactions() bool {
-	for _, tx := range b.Transactions {
+func (block *Block) HasValidTransactions() bool {
+	for _, tx := range block.Transactions {
 		if !tx.IsValid() {
 			return false
 		}
 	}
+
 	return true
 }
 
-func (b *Block) MineBlock(difficulty int) {
-	sw := time.Now()
+func (block *Block) MineBlock(difficulty int) {
+	stopWatch := time.Now()
 
-	for !isValidHash(b.Hash, difficulty) {
-		b.Nonce++
-		b.Hash = b.CalculateHash()
+	for !isValidHash(block.Hash, difficulty) {
+		block.Nonce++
+		block.Hash = block.CalculateHash()
 	}
 
-	b.BlockSignature, _ = ecdsa.Sign(b.SigningKey, []byte(b.Hash))
-	result := b.IsBlockSignatureValid()
+	r, s, err := ecdsa.Sign(rand.Reader, block.SigningKey, []byte(block.Hash))
+	if err != nil {
+		// Handle error
+		return
+	}
 
-	elapsed := time.Since(sw)
-	fmt.Printf("Mining time: %v for block: %v\n", elapsed, b.Hash)
+	block.BlockSignature = append(r.Bytes(), s.Bytes()...)
+	result := block.IsBlockSignatureValid()
+
+	if result {
+		fmt.Printf("Block signature valid: %v\n", block.BlockSignature)
+	}
+
+	elapsed := time.Since(stopWatch)
+	fmt.Printf("Mining time: %v for block: %v\n", elapsed, block.Hash)
 }
 
 func isValidHash(hash string, difficulty int) bool {
@@ -89,50 +102,51 @@ func isValidHash(hash string, difficulty int) bool {
 	return strings.HasPrefix(hash, prefix)
 }
 
-func (b *Block) IsBlockSignatureValid() bool {
+func (block *Block) IsBlockSignatureValid() bool {
 	minerKey := &ecdsa.PublicKey{
 		Curve: elliptic.P256(),
 		X:     new(big.Int),
 		Y:     new(big.Int),
 	}
-	minerKey.X, minerKey.Y = minerKey.Curve.ScalarBaseMult(b.BlockSignature)
+	minerKey.X, minerKey.Y = minerKey.Curve.ScalarBaseMult(block.BlockSignature)
 
-	if b.BlockSignature == nil {
-		panic("Block doesn't contain block signature.")
+	if block.BlockSignature == nil || len(block.BlockSignature) != 64 {
+		panic("Block doesn't contain a valid block signature.")
 	}
 
-	return ecdsa.Verify(minerKey, []byte(b.Hash), b.BlockSignature)
+	randomCordinate := new(big.Int).SetBytes(block.BlockSignature[:32])
+	secret := new(big.Int).SetBytes(block.BlockSignature[32:])
+
+	return ecdsa.Verify(minerKey, []byte(block.Hash), randomCordinate, secret)
 }
 
-func (b *Block) IsBlockMiner(minerAddress string) bool {
-	fromAddresskey := &ecdsa.PublicKey{
+func (block *Block) IsBlockMiner(minerAddress string) bool {
+	minerKeyBytes, err := hex.DecodeString(minerAddress)
+	if err != nil {
+		panic("Invalid miner address.")
+	}
+
+	if block.BlockSignature == nil || len(block.BlockSignature) != 65 {
+		panic("Block doesn't contain a valid block signature.")
+	}
+
+	// Extract r and s components from the signature
+	randomCoordinate := new(big.Int).SetBytes(block.BlockSignature[:32])
+	secret := new(big.Int).SetBytes(block.BlockSignature[32:])
+
+	// Decode the minerKeyBytes into an ecdsa.PublicKey
+	minerKey := &ecdsa.PublicKey{
 		Curve: elliptic.P256(),
 		X:     new(big.Int),
 		Y:     new(big.Int),
 	}
-	fromAddresskey.X, fromAddresskey.Y = fromAddresskey.Curve.ScalarBaseMult(ConvertFromHexString(minerAddress))
+	minerKey.X, minerKey.Y = elliptic.Unmarshal(minerKey.Curve, minerKeyBytes)
 
-	if b.BlockSignature == nil {
-		panic("Block doesn't contain block signature.")
-	}
-
-	if fromAddresskey == nil {
-		panic("Invalid miner address.")
-	}
-
-	return ecdsa.Verify(fromAddresskey, []byte(b.Hash), b.BlockSignature)
+	return ecdsa.Verify(minerKey, []byte(block.Hash), randomCoordinate, secret)
 }
 
 func GetHash(hashAlgorithm *sha256.Hash, input string) string {
 	hashAlgorithm.Write([]byte(input))
 	hash := hashAlgorithm.Sum(nil)
 	return hex.EncodeToString(hash)
-}
-
-func ConvertFromHexString(hexString string) []byte {
-	decoded, err := hex.DecodeString(hexString)
-	if err != nil {
-		panic(err)
-	}
-	return decoded
 }
