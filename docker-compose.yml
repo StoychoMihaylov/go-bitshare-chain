@@ -1,0 +1,29 @@
+version: '3.9'
+
+services:
+
+  #SERVICES
+
+  go-bitshare-chain:
+    container_name: go-bitshare-chain
+    build:
+      context: .
+      dockerfile: dockerfile
+    depends_on:
+      - go-bitshare-mongodb
+    ports:
+      - "8000:8000"
+
+  #DATABASES
+
+  go-bitshare-mongodb:
+    container_name: go-bitshare-mongodb
+    image: mongo:latest
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpassword
+    ports:
+      - 27000:27017
+    volumes:
+      - ./mongo-volume:/data/go-bitshare-mongodb
+
