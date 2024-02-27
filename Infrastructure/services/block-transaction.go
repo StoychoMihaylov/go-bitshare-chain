@@ -29,8 +29,8 @@ func NewBlockTransaction(fromAddress, toAddress string, amount decimal.Decimal) 
 	}
 }
 
-func (tx *BlockTransaction) SignTransaction(signingKey *ecdsa.PrivateKey) error {
-	fromAddressKey, err := ConvertFromHexString(tx.FromAddress)
+func (transaction *BlockTransaction) SignTransaction(signingKey *ecdsa.PrivateKey) error {
+	fromAddressKey, err := ConvertFromHexString(transaction.FromAddress)
 	if err != nil {
 		return err
 	}
@@ -45,35 +45,35 @@ func (tx *BlockTransaction) SignTransaction(signingKey *ecdsa.PrivateKey) error 
 		return err
 	}
 
-	transactionHash := tx.CalculateHash()
+	transactionHash := transaction.CalculateHash()
 	signature, err := ecdsa.Sign(rand.Reader, signingKey, transactionHash)
 	if err != nil {
 		return err
 	}
 
 	ephemeralPubKeyBytes := elliptic.Marshal(ephemeral.Curve, ephemeral.PublicKey.X, ephemeral.PublicKey.Y)
-	tx.Signature = append(ephemeralPubKeyBytes, signature.R.Bytes()...)
-	tx.Signature = append(tx.Signature, signature.S.Bytes()...)
+	transaction.Signature = append(ephemeralPubKeyBytes, signature.R.Bytes()...)
+	transaction.Signature = append(transaction.Signature, signature.S.Bytes()...)
 
 	return nil
 }
 
-func (tx *BlockTransaction) IsValid() bool {
-	if tx.FromAddress == "" {
+func (transaction *BlockTransaction) IsValid() bool {
+	if transaction.FromAddress == "" {
 		return false
 	}
 
-	if tx.Signature == nil || len(tx.Signature) == 0 {
+	if transaction.Signature == nil || len(transaction.Signature) == 0 {
 		return false
 	}
 
-	fromAddressKey, err := ConvertFromHexString(tx.FromAddress)
+	fromAddressKey, err := ConvertFromHexString(transaction.FromAddress)
 	if err != nil {
 		return false
 	}
 
-	ephemeralPubKeyBytes := tx.Signature[:65]
-	signatureBytes := tx.Signature[65:]
+	ephemeralPubKeyBytes := transaction.Signature[:65]
+	signatureBytes := transaction.Signature[65:]
 
 	ephemeralPubKey, err := ConvertFromBytes(ephemeralPubKeyBytes)
 	if err != nil {
@@ -85,7 +85,7 @@ func (tx *BlockTransaction) IsValid() bool {
 		return false
 	}
 
-	transactionHash := tx.CalculateHash()
+	transactionHash := transaction.CalculateHash()
 	signature := &ecdsa.Signature{
 		R: new(big.Int).SetBytes(signatureBytes[:32]),
 		S: new(big.Int).SetBytes(signatureBytes[32:]),
@@ -94,9 +94,9 @@ func (tx *BlockTransaction) IsValid() bool {
 	return ecdsa.Verify(&fromAddressKey, transactionHash, signature)
 }
 
-func (tx *BlockTransaction) CalculateHash() []byte {
+func (transaction *BlockTransaction) CalculateHash() []byte {
 	sha256Hash := sha256.New()
-	data := fmt.Sprintf("%s%s%s", tx.FromAddress, tx.ToAddress, tx.Amount.String())
+	data := fmt.Sprintf("%s%s%s", transaction.FromAddress, transaction.ToAddress, transaction.Amount.String())
 	sha256Hash.Write([]byte(data))
 	return sha256Hash.Sum(nil)
 }
