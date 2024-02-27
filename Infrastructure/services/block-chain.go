@@ -10,7 +10,6 @@ import (
 	decimal "github.com/shopspring/decimal"
 )
 
-// Blockchain is a struct representing a basic blockchain.
 type Blockchain struct {
 	Chain               []Block
 	Difficulty          int
@@ -18,7 +17,6 @@ type Blockchain struct {
 	MiningReward        decimal.Decimal
 }
 
-// NewBlockchain creates and initializes a new Blockchain.
 func NewBlockchain() *Blockchain {
 	blockchain := &Blockchain{
 		Chain:               createGenesisBlock(),
@@ -41,8 +39,7 @@ func (blockChain *Blockchain) MinePendingTransactions(miningRewardAddress string
 	}
 }
 
-// AddTransaction adds a new transaction to the pending transactions.
-func (bc *Blockchain) AddTransaction(transaction BlockTransaction) {
+func (blockChain *Blockchain) AddTransaction(transaction BlockTransaction) {
 	if transaction.FromAddress == "" || transaction.ToAddress == "" {
 		panic("Transaction must include from and to address.")
 	}
@@ -51,14 +48,13 @@ func (bc *Blockchain) AddTransaction(transaction BlockTransaction) {
 		panic("Cannot add invalid transaction to the chain.")
 	}
 
-	bc.PendingTransactions = append(bc.PendingTransactions, transaction)
+	blockChain.PendingTransactions = append(blockChain.PendingTransactions, transaction)
 }
 
-// GetBalanceOfAddress calculates the balance of a given address.
-func (bc *Blockchain) GetBalanceOfAddress(address string) decimal.Decimal {
+func (blockChain *Blockchain) GetBalanceOfAddress(address string) decimal.Decimal {
 	balance := decimal.NewFromFloat(0)
 
-	for _, block := range bc.Chain {
+	for _, block := range blockChain.Chain {
 		for _, transaction := range block.Transactions {
 			if transaction.FromAddress == address {
 				balance = balance.Sub(transaction.Amount)
@@ -73,10 +69,10 @@ func (bc *Blockchain) GetBalanceOfAddress(address string) decimal.Decimal {
 	return balance
 }
 
-func (bc *Blockchain) IsChainValid() bool {
-	for index := 1; index < len(bc.Chain); index++ {
-		currentBlock := &bc.Chain[index]
-		previousBlock := &bc.Chain[index-1]
+func (blockChain *Blockchain) IsChainValid() bool {
+	for index := 1; index < len(blockChain.Chain); index++ {
+		currentBlock := &blockChain.Chain[index]
+		previousBlock := &blockChain.Chain[index-1]
 
 		if !currentBlock.IsBlockSignatureValid() {
 			return false

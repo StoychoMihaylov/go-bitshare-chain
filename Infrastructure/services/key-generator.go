@@ -14,7 +14,7 @@ type IKeyGenerator interface {
 
 type KeyGenerator struct{}
 
-func (kg *KeyGenerator) GeneratePublicAndPrivateKey() (publicKey string, privateKey string) {
+func (keyGenerator *KeyGenerator) GeneratePublicAndPrivateKey() (publicKey string, privateKey string) {
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		panic(fmt.Errorf("failed to generate key: %v", err))
