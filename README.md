@@ -1,0 +1,3 @@
+Migration of an .NET bitchare chain node to GO.
+
+moreto come here...
