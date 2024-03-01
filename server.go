@@ -2,6 +2,8 @@ package main
 
 import (
 	commands "bitshare-chain/application/commands"
+	repositories "bitshare-chain/application/data-access/repositories"
+	settings_options "bitshare-chain/application/options"
 	services "bitshare-chain/infrastructure/services"
 	http "net/http"
 
@@ -27,8 +29,13 @@ func main() {
 	//TO DO: FIND A WAY TO MAKE THAT SIMPLE!!!!
 	//---------------------------------------------------------------------------------------------------------------------------------
 
+	dbOptions := settings_options.MongoDbOptions{
+		DatabaseName:     "GoBitshareChain",
+		ConnectionString: "mongodb://root:rootpassword@mongodb-node-a:27017/?authMechanism=SCRAM-SHA-256",
+	}
+
 	// Initialize dependencies
-	// walletAccountRepository := Initialize your wallet account repository
+	walletAccountRepository := repositories.NewWalletAccountRepository(dbOptions)
 	keyGenerator := &services.KeyGenerator{} // Assuming you have a KeyGenerator implementation
 
 	// Inject dependencies into the handler
