@@ -4,8 +4,9 @@ import (
 	context "context"
 	fmt "fmt"
 
-	mongo_context "github.com/bitshare/application/dataaccess/context"
-	documents "github.com/bitshare/application/dataaccess/documents"
+	documents "bitshare-chain/application/data-access/documents"
+	mongo_context "bitshare-chain/application/data-access/mongo_context"
+
 	bson "go.mongodb.org/mongo-driver/bson"
 	mongo "go.mongodb.org/mongo-driver/mongo"
 )

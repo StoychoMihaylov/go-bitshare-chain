@@ -1,21 +1,21 @@
 package commands
 
 import (
-	"context"
-	"encoding/json"
-	"myapp/domain"
-	"myapp/domain/viewmodels"
-	"myapp/infrastructure/services"
+	repositories "bitshare-chain/application/data-access/repositories"
+	viewmodels "bitshare-chain/domain/viewmodels"
+	services "bitshare-chain/infrastructure/services"
+	context "context"
+	json "encoding/json"
 )
 
 type CreateWalletAccountCommand struct{}
 
 type CreateWalletAccountCommandHandler struct {
-	walletAccountRepository domain.WalletAccountRepository
+	walletAccountRepository repositories.WalletAccountRepository
 	keyGenerator            services.KeyGenerator
 }
 
-func NewCreateWalletAccountCommandHandler(walletAccountRepository domain.WalletAccountRepository, keyGenerator services.KeyGenerator) *CreateWalletAccountCommandHandler {
+func NewCreateWalletAccountCommandHandler(walletAccountRepository repositories.WalletAccountRepository, keyGenerator services.KeyGenerator) *CreateWalletAccountCommandHandler {
 	return &CreateWalletAccountCommandHandler{
 		walletAccountRepository: walletAccountRepository,
 		keyGenerator:            keyGenerator,
@@ -26,7 +26,7 @@ func NewCreateWalletAccountCommandHandler(walletAccountRepository domain.WalletA
 func (handler *CreateWalletAccountCommandHandler) Handle(context context.Context, cmd CreateWalletAccountCommand) (interface{}, error) {
 	keys := handler.keyGenerator.GeneratePublicAndPrivateKey()
 
-	newWalletAccount := domain.WalletAccount{
+	newWalletAccount := repositories.WalletAccount{
 		Address: keys.PublicKey,
 	}
 
