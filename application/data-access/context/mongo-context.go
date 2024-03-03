@@ -30,16 +30,16 @@ func NewMongoContext(dbOptions *settings_options.MongoDbOptions) (*MongoContext,
 }
 
 // Close closes the MongoDB client.
-func (m *MongoContext) Close() error {
-	if m.Client != nil {
-		return m.Client.Disconnect(context.Background())
+func (mongoContext *MongoContext) Close() error {
+	if mongoContext.Client != nil {
+		return mongoContext.Client.Disconnect(context.Background())
 	}
 	return nil
 }
 
 // CreateIndex creates an index on the specified collection.
-func (m *MongoContext) CreateIndex(collectionName string, indexKeys []string) error {
-	collection := m.Database.Collection(collectionName)
+func (mongoContext *MongoContext) CreateIndex(collectionName string, indexKeys []string) error {
+	collection := mongoContext.Database.Collection(collectionName)
 	indexModel := mongo.IndexModel{
 		Keys:    indexKeys,
 		Options: options.Index().SetName("customIndexName"), // Customize the index name as needed

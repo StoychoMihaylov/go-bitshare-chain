@@ -31,7 +31,7 @@ func main() {
 
 	dbOptions := settings_options.MongoDbOptions{
 		DatabaseName:     "GoBitshareChain",
-		ConnectionString: "mongodb://root:rootpassword@mongodb-node-a:27017/?authMechanism=SCRAM-SHA-256",
+		ConnectionString: "mongodb://root:rootpassword@go-bitshare-mongodb:27017/?authMechanism=SCRAM-SHA-256",
 	}
 
 	// Initialize dependencies
@@ -41,7 +41,10 @@ func main() {
 	// Inject dependencies into the handler
 	createWalletAccountHandler := commands.NewCreateWalletAccountCommandHandler(walletAccountRepository, keyGenerator) // walletAccountRepository still not implemented
 
-	// Define routes
+	ginRouter.GET("/api/test", func(context *gin.Context) {
+		context.String(http.StatusOK, "TEST!")
+	})
+
 	ginRouter.POST("/api/create-wallet", func(context *gin.Context) {
 		response, err := createWalletAccountHandler.Handle(context.Request.Context(), commands.CreateWalletAccountCommand{})
 		if err != nil {
