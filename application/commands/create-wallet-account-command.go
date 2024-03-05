@@ -1,9 +1,10 @@
 package commands
 
 import (
+	documents "bitshare-chain/application/data-access/documents"
 	repositories "bitshare-chain/application/data-access/repositories"
-	viewmodels "bitshare-chain/domain/viewmodels"
-	services "bitshare-chain/infrastructure/services"
+	viewmodels "bitshare-chain/domain/view-models"
+	services "bitshare-chain/infrastructure/utilities"
 	context "context"
 	json "encoding/json"
 )
@@ -22,21 +23,23 @@ func NewCreateWalletAccountCommandHandler(walletAccountRepository repositories.W
 	}
 }
 
-// Handle executes the CreateWalletAccountCommand and returns a JSON response.
 func (handler *CreateWalletAccountCommandHandler) Handle(context context.Context, cmd CreateWalletAccountCommand) (interface{}, error) {
-	keys := handler.keyGenerator.GeneratePublicAndPrivateKey()
+	// Generate public and private keys
+	publicKey, privateKey := handler.keyGenerator.GeneratePublicAndPrivateKey()
 
-	newWalletAccount := repositories.WalletAccount{
-		Address: keys.PublicKey,
+	newWalletAccount := documents.WalletAccountDocument{
+		Address: publicKey,
 	}
 
-	err := handler.walletAccountRepository.CreateWalletAccount(context, newWalletAccount)
+	// Create a new wallet account
+	err := handler.walletAccountRepository.CreateWalletAccount(&newWalletAccount)
 	if err != nil {
 		// Handle error accordingly
 		return nil, err
 	}
 
-	walletKeysVM := viewmodels.NewWalletKeysVM(keys.PublicKey, keys.PrivateKey, nil)
+	// Create a view model for wallet keys
+	walletKeysVM := viewmodels.NewWalletKeysVM(publicKey, privateKey, "")
 
 	// Convert to JSON response
 	response, err := json.Marshal(walletKeysVM)
