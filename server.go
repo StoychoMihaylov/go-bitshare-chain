@@ -2,9 +2,10 @@ package main
 
 import (
 	commands "bitshare-chain/application/commands"
+	mongo_context "bitshare-chain/application/data-access/context"
 	repositories "bitshare-chain/application/data-access/repositories"
-	settings_options "bitshare-chain/application/options"
-	services "bitshare-chain/infrastructure/services"
+	settings "bitshare-chain/infrastructure/settings"
+	services "bitshare-chain/infrastructure/utilities"
 	http "net/http"
 
 	gin "github.com/gin-gonic/gin"
@@ -22,30 +23,37 @@ func main() {
 		response.Write([]byte("Hello from GORILLA Mux!"))
 	}).Methods("GET")
 
-	// Create a single server for GIN and GORILLA
-	http.Handle("/gin", ginRouter)
-	http.Handle("/gorilla", gorillaRouter)
-
 	//TO DO: FIND A WAY TO MAKE THAT SIMPLE!!!!
 	//---------------------------------------------------------------------------------------------------------------------------------
 
-	dbOptions := settings_options.MongoDbOptions{
+	dbOptions := settings.MongoDbOptions{
 		DatabaseName:     "GoBitshareChain",
 		ConnectionString: "mongodb://root:rootpassword@go-bitshare-mongodb:27017/?authMechanism=SCRAM-SHA-256",
 	}
 
+	mongoContext, err := mongo_context.NewMongoContext(&dbOptions)
+	if err != nil {
+		// Handle error
+		panic(err)
+	}
+	defer mongoContext.Close()
+
 	// Initialize dependencies
-	walletAccountRepository := repositories.NewWalletAccountRepository(dbOptions)
+	walletAccountRepository := repositories.NewWalletAccountRepository(mongoContext)
 	keyGenerator := &services.KeyGenerator{} // Assuming you have a KeyGenerator implementation
 
-	// Inject dependencies into the handler
-	createWalletAccountHandler := commands.NewCreateWalletAccountCommandHandler(walletAccountRepository, keyGenerator) // walletAccountRepository still not implemented
+	// TO DO: Initialize validation middleware
+	// TO DO: Add validation middlewere package
+	//validator := validation.NewValidator()
 
-	ginRouter.GET("/api/test", func(context *gin.Context) {
+	// Inject dependencies into the handler
+	createWalletAccountHandler := commands.NewCreateWalletAccountCommandHandler(walletAccountRepository, *keyGenerator) // walletAccountRepository still not implemented
+
+	ginRouter.GET("/test", func(context *gin.Context) {
 		context.String(http.StatusOK, "TEST!")
 	})
 
-	ginRouter.POST("/api/create-wallet", func(context *gin.Context) {
+	ginRouter.POST("/create-wallet", func(context *gin.Context) {
 		response, err := createWalletAccountHandler.Handle(context.Request.Context(), commands.CreateWalletAccountCommand{})
 		if err != nil {
 			context.JSON(500, gin.H{"error": "Internal Server Error"})
@@ -65,5 +73,10 @@ func main() {
 
 	//---------------------------------------------------------------------------------------------------------------------------------
 
+	// Create a single server for GIN and GORILLA
+	http.Handle("/gin", ginRouter)
+	http.Handle("/gorilla/", gorillaRouter)
+
+	//ginRouter.Run(":8000")
 	http.ListenAndServe(":8000", nil)
 }

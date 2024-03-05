@@ -1,7 +1,7 @@
 package mongo_context
 
 import (
-	settings_options "bitshare-chain/infrastructure/options"
+	settings "bitshare-chain/infrastructure/settings"
 	context "context"
 
 	mongo "go.mongodb.org/mongo-driver/mongo"
@@ -15,7 +15,7 @@ type MongoContext struct {
 }
 
 // NewMongoContext creates and initializes a new MongoContext.
-func NewMongoContext(dbOptions *settings_options.MongoDbOptions) (*MongoContext, error) {
+func NewMongoContext(dbOptions *settings.MongoDbOptions) (*MongoContext, error) {
 	clientOptions := options.Client()
 	client, err := mongo.Connect(context.Background(), clientOptions.ApplyURI(dbOptions.ConnectionString))
 	if err != nil {

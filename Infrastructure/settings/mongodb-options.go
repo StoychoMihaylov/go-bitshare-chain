@@ -1,4 +1,4 @@
-package settings_options
+package settings
 
 type MongoDbOptions struct {
 	DatabaseName     string `json:"databaseName"`
