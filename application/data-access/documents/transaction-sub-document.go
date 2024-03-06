@@ -20,7 +20,7 @@ type TransactionSubDocument struct {
 }
 
 func (transaction *TransactionSubDocument) SignTransaction(signingKey *ecdsa.PrivateKey) {
-	if hex.EncodeToString(signingKey.PublicKey.X.Bytes())+hex.EncodeToString(signingKey.PublicKey.Y.Bytes()) != tx.FromAddress {
+	if hex.EncodeToString(signingKey.PublicKey.X.Bytes())+hex.EncodeToString(signingKey.PublicKey.Y.Bytes()) != transaction.FromAddress {
 		panic("You cannot sign transactions for other wallets!")
 	}
 

@@ -1,7 +1,6 @@
 package services
 
 import (
-	ecdh "crypto/ecdh"
 	ecdsa "crypto/ecdsa"
 	elliptic "crypto/elliptic"
 	rand "crypto/rand"
@@ -35,25 +34,20 @@ func (transaction *BlockTransaction) SignTransaction(signingKey *ecdsa.PrivateKe
 		return err
 	}
 
-	ephemeral, err := ecdh.GenerateKey(fromAddressKey.Curve, rand.Reader)
-	if err != nil {
-		return err
-	}
-
-	sharedKey, err := ecdh.GenerateSharedKey(ephemeral, &fromAddressKey, signingKey.PublicKey.X, signingKey.PublicKey.Y)
+	ephemeral, err := ecdsa.GenerateKey(fromAddressKey.Curve, rand.Reader)
 	if err != nil {
 		return err
 	}
 
 	transactionHash := transaction.CalculateHash()
-	signature, err := ecdsa.Sign(rand.Reader, signingKey, transactionHash)
+	r, s, err := ecdsa.Sign(rand.Reader, signingKey, transactionHash)
 	if err != nil {
 		return err
 	}
 
 	ephemeralPubKeyBytes := elliptic.Marshal(ephemeral.Curve, ephemeral.PublicKey.X, ephemeral.PublicKey.Y)
-	transaction.Signature = append(ephemeralPubKeyBytes, signature.R.Bytes()...)
-	transaction.Signature = append(transaction.Signature, signature.S.Bytes()...)
+	transaction.Signature = append(ephemeralPubKeyBytes, r.Bytes()...)
+	transaction.Signature = append(transaction.Signature, s.Bytes()...)
 
 	return nil
 }
@@ -72,23 +66,13 @@ func (transaction *BlockTransaction) IsValid() bool {
 		return false
 	}
 
-	ephemeralPubKeyBytes := transaction.Signature[:65]
-	signatureBytes := transaction.Signature[65:]
-
-	ephemeralPubKey, err := ConvertFromBytes(ephemeralPubKeyBytes)
-	if err != nil {
-		return false
-	}
-
-	sharedKey, err := ecdh.GenerateSharedKey(&fromAddressKey, ephemeralPubKey, fromAddressKey.X, fromAddressKey.Y)
-	if err != nil {
-		return false
-	}
-
+	// Assuming sharedKey is intended to be fromAddressKey
 	transactionHash := transaction.CalculateHash()
+
+	// Assuming signature is intended to be a variable of type ecdsa.Signature
 	signature := &ecdsa.Signature{
-		R: new(big.Int).SetBytes(signatureBytes[:32]),
-		S: new(big.Int).SetBytes(signatureBytes[32:]),
+		R: new(big.Int).SetBytes(transaction.Signature[:32]),
+		S: new(big.Int).SetBytes(transaction.Signature[32:]),
 	}
 
 	return ecdsa.Verify(&fromAddressKey, transactionHash, signature)
