@@ -7,6 +7,7 @@ import (
 	sha256 "crypto/sha256"
 	hex "encoding/hex"
 	fmt "fmt"
+	"hash"
 	big "math/big"
 	strings "strings"
 	time "time"
@@ -19,7 +20,7 @@ type BlockService interface {
 	MineBlock(difficulty int64)
 	IsBlockSignatureValid() bool
 	IsBlockMiner(minerAddress string) bool
-	GetHash(hashAlgorithm *sha256.Hash, input string) string //hashAlgorithm GO alternative of Cyrptography.HashAlgorithm in C#
+	GetHash(hashAlgorithm hash.Hash, input string) string
 }
 
 type Block struct {
@@ -145,7 +146,7 @@ func (block *Block) IsBlockMiner(minerAddress string) bool {
 	return ecdsa.Verify(minerKey, []byte(block.Hash), randomCoordinate, secret)
 }
 
-func GetHash(hashAlgorithm *sha256.Hash, input string) string {
+func GetHash(hashAlgorithm hash.Hash, input string) string {
 	hashAlgorithm.Write([]byte(input))
 	hash := hashAlgorithm.Sum(nil)
 	return hex.EncodeToString(hash)
