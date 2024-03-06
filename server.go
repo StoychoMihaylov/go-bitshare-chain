@@ -9,19 +9,18 @@ import (
 	http "net/http"
 
 	gin "github.com/gin-gonic/gin"
-	mux "github.com/gorilla/mux"
 )
 
 func main() {
 	ginRouter := gin.Default()
+
 	ginRouter.GET("/gin", func(context *gin.Context) {
 		context.String(http.StatusOK, "Hello from GIN!")
 	})
 
-	gorillaRouter := mux.NewRouter()
-	gorillaRouter.HandleFunc("/gorilla", func(response http.ResponseWriter, request *http.Request) {
-		response.Write([]byte("Hello from GORILLA Mux!"))
-	}).Methods("GET")
+	ginRouter.GET("/test", func(context *gin.Context) {
+		context.String(http.StatusOK, "TEST!")
+	})
 
 	//TO DO: FIND A WAY TO MAKE THAT SIMPLE!!!!
 	//---------------------------------------------------------------------------------------------------------------------------------
@@ -49,10 +48,6 @@ func main() {
 	// Inject dependencies into the handler
 	createWalletAccountHandler := commands.NewCreateWalletAccountCommandHandler(walletAccountRepository, *keyGenerator) // walletAccountRepository still not implemented
 
-	ginRouter.GET("/test", func(context *gin.Context) {
-		context.String(http.StatusOK, "TEST!")
-	})
-
 	ginRouter.POST("/create-wallet", func(context *gin.Context) {
 		response, err := createWalletAccountHandler.Handle(context.Request.Context(), commands.CreateWalletAccountCommand{})
 		if err != nil {
@@ -72,11 +67,5 @@ func main() {
 	})
 
 	//---------------------------------------------------------------------------------------------------------------------------------
-
-	// Create a single server for GIN and GORILLA
-	http.Handle("/gin", ginRouter)
-	http.Handle("/gorilla/", gorillaRouter)
-
-	//ginRouter.Run(":8000")
-	http.ListenAndServe(":8000", nil)
+	ginRouter.Run(":8000")
 }

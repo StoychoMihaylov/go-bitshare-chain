@@ -69,13 +69,12 @@ func (transaction *BlockTransaction) IsValid() bool {
 	// Assuming sharedKey is intended to be fromAddressKey
 	transactionHash := transaction.CalculateHash()
 
-	// Assuming signature is intended to be a variable of type ecdsa.Signature
-	signature := &ecdsa.Signature{
-		R: new(big.Int).SetBytes(transaction.Signature[:32]),
-		S: new(big.Int).SetBytes(transaction.Signature[32:]),
-	}
+	// Assuming signature is intended to be a pair of *big.Int (R and S components)
+	var r, s big.Int
+	r.SetBytes(transaction.Signature[:32])
+	s.SetBytes(transaction.Signature[32:])
 
-	return ecdsa.Verify(&fromAddressKey, transactionHash, signature)
+	return ecdsa.Verify(&fromAddressKey, transactionHash, &r, &s)
 }
 
 func (transaction *BlockTransaction) CalculateHash() []byte {
