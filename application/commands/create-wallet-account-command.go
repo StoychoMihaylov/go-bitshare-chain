@@ -23,7 +23,7 @@ func NewCreateWalletAccountCommandHandler(walletAccountRepository repositories.W
 	}
 }
 
-func (handler *CreateWalletAccountCommandHandler) Handle(context context.Context, cmd CreateWalletAccountCommand) (interface{}, error) {
+func (handler *CreateWalletAccountCommandHandler) Handle(context context.Context, command CreateWalletAccountCommand) (interface{}, error) {
 	// Generate public and private keys
 	publicKey, privateKey := handler.keyGenerator.GeneratePublicAndPrivateKey()
 

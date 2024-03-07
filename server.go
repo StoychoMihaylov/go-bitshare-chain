@@ -32,20 +32,17 @@ func main() {
 
 	mongoContext, err := mongo_context.NewMongoContext(&dbOptions)
 	if err != nil {
-		// Handle error
 		panic(err)
 	}
 	defer mongoContext.Close()
 
 	// Initialize dependencies
 	walletAccountRepository := repositories.NewWalletAccountRepository(mongoContext)
-	keyGenerator := &services.KeyGenerator{} // Assuming you have a KeyGenerator implementation
+	keyGenerator := &services.KeyGenerator{}
 
-	// TO DO: Initialize validation middleware
 	// TO DO: Add validation middlewere package
 	//validator := validation.NewValidator()
 
-	// Inject dependencies into the handler
 	createWalletAccountHandler := commands.NewCreateWalletAccountCommandHandler(walletAccountRepository, *keyGenerator) // walletAccountRepository still not implemented
 
 	ginRouter.POST("/create-wallet", func(context *gin.Context) {
@@ -55,17 +52,14 @@ func main() {
 			return
 		}
 
-		// Type assert the response to []byte
 		responseBytes, ok := response.([]byte)
 		if !ok {
 			context.JSON(500, gin.H{"error": "Internal Server Error"})
 			return
 		}
 
-		// Assuming response is a JSON-encoded byte slice
 		context.Data(200, "application/json; charset=utf-8", responseBytes)
 	})
 
-	//---------------------------------------------------------------------------------------------------------------------------------
 	ginRouter.Run(":8000")
 }
