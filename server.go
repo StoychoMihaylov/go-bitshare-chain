@@ -4,26 +4,16 @@ import (
 	commands "bitshare-chain/application/commands"
 	mongo_context "bitshare-chain/application/data-access/context"
 	repositories "bitshare-chain/application/data-access/repositories"
+	validation "bitshare-chain/application/validation"
 	settings "bitshare-chain/infrastructure/settings"
 	services "bitshare-chain/infrastructure/utilities"
-	http "net/http"
+	controllers "bitshare-chain/web/controllers"
 
 	gin "github.com/gin-gonic/gin"
 )
 
 func main() {
 	ginRouter := gin.Default()
-
-	ginRouter.GET("/gin", func(context *gin.Context) {
-		context.String(http.StatusOK, "Hello from GIN!")
-	})
-
-	ginRouter.GET("/test", func(context *gin.Context) {
-		context.String(http.StatusOK, "TEST!")
-	})
-
-	//TO DO: FIND A WAY TO MAKE THAT SIMPLE!!!!
-	//---------------------------------------------------------------------------------------------------------------------------------
 
 	dbOptions := settings.MongoDbOptions{
 		DatabaseName:     "GoBitshareChain",
@@ -40,26 +30,19 @@ func main() {
 	walletAccountRepository := repositories.NewWalletAccountRepository(mongoContext)
 	keyGenerator := &services.KeyGenerator{}
 
-	// TO DO: Add validation middlewere package
-	//validator := validation.NewValidator()
+	validator := validation.NewValidator()
+	createWalletAccountCommandHandler := commands.NewCreateWalletAccountCommandHandler(walletAccountRepository, *keyGenerator, validator)
 
-	createWalletAccountHandler := commands.NewCreateWalletAccountCommandHandler(walletAccountRepository, *keyGenerator) // walletAccountRepository still not implemented
+	// Correct the variable name here to avoid conflicts
+	chainController := controllers.NewChainController(createWalletAccountCommandHandler)
 
-	ginRouter.POST("/create-wallet", func(context *gin.Context) {
-		response, err := createWalletAccountHandler.Handle(context.Request.Context(), commands.CreateWalletAccountCommand{})
-		if err != nil {
-			context.JSON(500, gin.H{"error": "Internal Server Error"})
-			return
-		}
+	testHandler := commands.NewTestCommandHandler(validator)
+	testController := controllers.NewTestController(testHandler)
 
-		responseBytes, ok := response.([]byte)
-		if !ok {
-			context.JSON(500, gin.H{"error": "Internal Server Error"})
-			return
-		}
+	//Routs
+	ginRouter.POST("/test", testController.TestRequest)
 
-		context.Data(200, "application/json; charset=utf-8", responseBytes)
-	})
+	ginRouter.POST("/create-wallet", chainController.CreateNewWalletAccount)
 
 	ginRouter.Run(":8000")
 }

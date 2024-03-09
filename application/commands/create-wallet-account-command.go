@@ -3,6 +3,7 @@ package commands
 import (
 	documents "bitshare-chain/application/data-access/documents"
 	repositories "bitshare-chain/application/data-access/repositories"
+	validation "bitshare-chain/application/validation"
 	viewmodels "bitshare-chain/domain/view-models"
 	services "bitshare-chain/infrastructure/utilities"
 	context "context"
@@ -14,12 +15,14 @@ type CreateWalletAccountCommand struct{}
 type CreateWalletAccountCommandHandler struct {
 	walletAccountRepository repositories.WalletAccountRepository
 	keyGenerator            services.KeyGenerator
+	validator               *validation.Validator
 }
 
-func NewCreateWalletAccountCommandHandler(walletAccountRepository repositories.WalletAccountRepository, keyGenerator services.KeyGenerator) *CreateWalletAccountCommandHandler {
+func NewCreateWalletAccountCommandHandler(walletAccountRepository repositories.WalletAccountRepository, keyGenerator services.KeyGenerator, validator *validation.Validator) *CreateWalletAccountCommandHandler {
 	return &CreateWalletAccountCommandHandler{
 		walletAccountRepository: walletAccountRepository,
 		keyGenerator:            keyGenerator,
+		validator:               validator,
 	}
 }
 
