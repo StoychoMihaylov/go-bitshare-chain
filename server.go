@@ -15,6 +15,8 @@ import (
 func main() {
 	ginRouter := gin.Default()
 
+	// Initialize dependencies
+	//DB
 	dbOptions := settings.MongoDbOptions{
 		DatabaseName:     "GoBitshareChain",
 		ConnectionString: "mongodb://root:rootpassword@go-bitshare-mongodb:27017/?authMechanism=SCRAM-SHA-256",
@@ -26,23 +28,25 @@ func main() {
 	}
 	defer mongoContext.Close()
 
-	// Initialize dependencies
+	//REPOS
 	walletAccountRepository := repositories.NewWalletAccountRepository(mongoContext)
+
+	//SERVICES
 	keyGenerator := &services.KeyGenerator{}
 
+	//VALIDATOR
 	validator := validation.NewValidator()
+
+	//COMMANDS
 	createWalletAccountCommandHandler := commands.NewCreateWalletAccountCommandHandler(walletAccountRepository, *keyGenerator, validator)
-
-	// Correct the variable name here to avoid conflicts
-	chainController := controllers.NewChainController(createWalletAccountCommandHandler)
-
 	testHandler := commands.NewTestCommandHandler(validator)
-	testController := controllers.NewTestController(testHandler)
 
-	//Routs
-	ginRouter.POST("/test", testController.TestRequest)
+	//CONTROLLERS
+	chainController := controllers.NewChainController(ginRouter, createWalletAccountCommandHandler)
+	chainController.SetupChainController()
 
-	ginRouter.POST("/create-wallet", chainController.CreateNewWalletAccount)
+	testController := controllers.NewTestController(ginRouter, testHandler)
+	testController.SetupTestController()
 
 	ginRouter.Run(":8000")
 }
