@@ -7,19 +7,25 @@ import (
 	gin "github.com/gin-gonic/gin"
 )
 
-type TestController struct{}
-
-var (
+type TestController struct {
+	ginRouter   *gin.Engine
 	testCommand *commands.TestCommandHandler
-)
+}
 
 type TestControllerer interface {
+	SetupTestController()
 	TestRequest(context *gin.Context)
 }
 
-func NewTestController(command *commands.TestCommandHandler) TestControllerer {
-	testCommand = command
-	return &TestController{}
+func NewTestController(router *gin.Engine, command *commands.TestCommandHandler) TestControllerer {
+	return &TestController{
+		ginRouter:   router,
+		testCommand: command,
+	}
+}
+
+func (controller *TestController) SetupTestController() {
+	controller.ginRouter.POST("/test", controller.TestRequest)
 }
 
 func (controller *TestController) TestRequest(context *gin.Context) {
@@ -29,7 +35,7 @@ func (controller *TestController) TestRequest(context *gin.Context) {
 		return
 	}
 
-	response, err := testCommand.Handle(context.Request.Context(), testCmd)
+	response, err := controller.testCommand.Handle(context.Request.Context(), testCmd)
 	if err != nil {
 		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

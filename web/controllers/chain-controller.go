@@ -7,13 +7,13 @@ import (
 	gin "github.com/gin-gonic/gin"
 )
 
-type ChainController struct{}
-
-var (
+type ChainController struct {
+	ginRouter                         *gin.Engine
 	createWalletAccountCommandHandler *commands.CreateWalletAccountCommandHandler
-)
+}
 
 type ChainControllerer interface {
+	SetupChainController()
 	// SetRewardAndBlockSigningKeys(context *gin.Context)
 	// RequestTransaction(context *gin.Context)
 	// GetPendingTransaction(context *gin.Context)
@@ -23,15 +23,21 @@ type ChainControllerer interface {
 	// IsTheChainValid()
 }
 
-func NewChainController(commnad *commands.CreateWalletAccountCommandHandler) ChainControllerer {
-	createWalletAccountCommandHandler = commnad
-	return &ChainController{}
+func NewChainController(router *gin.Engine, commnad *commands.CreateWalletAccountCommandHandler) ChainControllerer {
+	return &ChainController{
+		ginRouter:                         router,
+		createWalletAccountCommandHandler: commnad,
+	}
+}
+
+func (controller *ChainController) SetupChainController() {
+	controller.ginRouter.POST("/create-wallet", controller.CreateNewWalletAccount)
 }
 
 func (controller *ChainController) CreateNewWalletAccount(context *gin.Context) {
 	var createWalletAccountCommand commands.CreateWalletAccountCommand
 
-	response, err := createWalletAccountCommandHandler.Handle(context.Request.Context(), createWalletAccountCommand)
+	response, err := controller.createWalletAccountCommandHandler.Handle(context.Request.Context(), createWalletAccountCommand)
 	if err != nil {
 		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
