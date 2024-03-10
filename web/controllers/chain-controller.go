@@ -34,6 +34,7 @@ func (controller *ChainController) SetupChainController() {
 	controller.ginRouter.POST("/create-wallet", controller.CreateNewWalletAccount)
 }
 
+// "POST" "/create-wallet"
 func (controller *ChainController) CreateNewWalletAccount(context *gin.Context) {
 	var createWalletAccountCommand commands.CreateWalletAccountCommand
 
