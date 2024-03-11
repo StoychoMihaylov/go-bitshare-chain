@@ -7,6 +7,7 @@ import (
 	services "bitshare-chain/infrastructure/utilities"
 	ecdsa "crypto/ecdsa"
 	elliptic "crypto/elliptic"
+	"crypto/rand"
 	hex "encoding/hex"
 	big "math/big"
 	sync "sync"
@@ -26,20 +27,28 @@ func NewMetadataService(keyGenerator services.KeyGenerator, nodeMetadataReposito
 }
 
 func (service *MetadataService) CreateOrUpdateKeys(privateKeyHex string) (viewmodels.WalletKeysVM, error) {
-	privateKeyBytes, _ := hex.DecodeString(privateKeyHex)
-
-	keys, err := ecdsa.GenerateKey(elliptic.P256(), nil)
+	privateKeyBytes, err := hex.DecodeString(privateKeyHex)
 	if err != nil {
 		return viewmodels.WalletKeysVM{}, err
 	}
 
+	keys := &ecdsa.PrivateKey{}
+	keys.Curve = elliptic.P256()
 	keys.D = new(big.Int).SetBytes(privateKeyBytes)
+
+	random := rand.Reader
+	_, x, y, err := elliptic.GenerateKey(keys.Curve, random)
+	if err != nil {
+		return viewmodels.WalletKeysVM{}, err
+	}
+
+	keys.PublicKey = ecdsa.PublicKey{Curve: keys.Curve, X: x, Y: y}
+
 	publicKeyExport := elliptic.Marshal(keys.Curve, keys.PublicKey.X, keys.PublicKey.Y)
 
 	publicKey := hex.EncodeToString(publicKeyExport)
 	privateKeysExport := hex.EncodeToString(privateKeyBytes)
 
-	// Store in-memory cache
 	service.cache.Store(enums.MinerPrivateKey, privateKeysExport)
 
 	nodeId, err := service.nodeMetadataRepository.InsertMetadataPublicKey(publicKey)
