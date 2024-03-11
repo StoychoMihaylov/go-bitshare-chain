@@ -25,9 +25,10 @@ func NewTestController(router *gin.Engine, command *commands.TestCommandHandler)
 }
 
 func (controller *TestController) SetupTestController() {
-	controller.ginRouter.POST("/test", controller.TestRequest)
+	controller.ginRouter.POST("/api/test", controller.TestRequest)
 }
 
+// "POST" "/test"
 func (controller *TestController) TestRequest(context *gin.Context) {
 	var testCmd commands.TestCommand
 	if err := context.BindJSON(&testCmd); err != nil {

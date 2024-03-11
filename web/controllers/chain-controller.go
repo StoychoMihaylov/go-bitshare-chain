@@ -2,6 +2,7 @@ package controllers
 
 import (
 	commands "bitshare-chain/application/commands"
+	services "bitshare-chain/application/services"
 	http "net/http"
 
 	gin "github.com/gin-gonic/gin"
@@ -10,6 +11,7 @@ import (
 type ChainController struct {
 	ginRouter                         *gin.Engine
 	createWalletAccountCommandHandler *commands.CreateWalletAccountCommandHandler
+	metadataService                   *services.MetadataService
 }
 
 type ChainControllerer interface {
@@ -23,18 +25,20 @@ type ChainControllerer interface {
 	// IsTheChainValid()
 }
 
-func NewChainController(router *gin.Engine, commnad *commands.CreateWalletAccountCommandHandler) ChainControllerer {
+func NewChainController(ginRouter *gin.Engine, createWalletAccountCommandHandler *commands.CreateWalletAccountCommandHandler, metadataService *services.MetadataService) ChainControllerer {
 	return &ChainController{
-		ginRouter:                         router,
-		createWalletAccountCommandHandler: commnad,
+		ginRouter:                         ginRouter,
+		createWalletAccountCommandHandler: createWalletAccountCommandHandler,
+		metadataService:                   metadataService,
 	}
 }
 
 func (controller *ChainController) SetupChainController() {
-	controller.ginRouter.POST("/create-wallet", controller.CreateNewWalletAccount)
+	controller.ginRouter.POST("/api/create-wallet", controller.CreateNewWalletAccount)
+	controller.ginRouter.PUT("/api/set-block-signing-keys", controller.SetBlockSigningKeys)
 }
 
-// "POST" "/create-wallet"
+// "POST" "api/create-wallet"
 func (controller *ChainController) CreateNewWalletAccount(context *gin.Context) {
 	var createWalletAccountCommand commands.CreateWalletAccountCommand
 
@@ -51,4 +55,13 @@ func (controller *ChainController) CreateNewWalletAccount(context *gin.Context) 
 	}
 
 	context.Data(200, "application/json; charset=utf-8", responseBytes)
+}
+
+// "POST" "api/set-block-signing-keys"
+func (controller *ChainController) SetBlockSigningKeys(context *gin.Context) {
+	privateKey := context.Query("privateKey")
+
+	keys := controller.metadataService.CreateOrUpdateKeys(privateKey)
+
+	context.JSON(http.StatusOK, keys)
 }
