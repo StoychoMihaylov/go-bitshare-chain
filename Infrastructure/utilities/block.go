@@ -1,4 +1,4 @@
-package services
+package utilities
 
 import (
 	ecdsa "crypto/ecdsa"
@@ -7,7 +7,7 @@ import (
 	sha256 "crypto/sha256"
 	hex "encoding/hex"
 	fmt "fmt"
-	"hash"
+	hash "hash"
 	big "math/big"
 	strings "strings"
 	time "time"

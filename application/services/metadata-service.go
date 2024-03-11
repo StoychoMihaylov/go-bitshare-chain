@@ -25,10 +25,13 @@ func NewMetadataService(keyGenerator services.KeyGenerator, nodeMetadataReposito
 	}
 }
 
-func (service *MetadataService) CreateOrUpdateKeys(privateKeyHex string) viewmodels.WalletKeysVM {
+func (service *MetadataService) CreateOrUpdateKeys(privateKeyHex string) (viewmodels.WalletKeysVM, error) {
 	privateKeyBytes, _ := hex.DecodeString(privateKeyHex)
 
-	keys, _ := ecdsa.GenerateKey(elliptic.P256(), nil)
+	keys, err := ecdsa.GenerateKey(elliptic.P256(), nil)
+	if err != nil {
+		return viewmodels.WalletKeysVM{}, err
+	}
 
 	keys.D = new(big.Int).SetBytes(privateKeyBytes)
 	publicKeyExport := elliptic.Marshal(keys.Curve, keys.PublicKey.X, keys.PublicKey.Y)
@@ -41,12 +44,12 @@ func (service *MetadataService) CreateOrUpdateKeys(privateKeyHex string) viewmod
 
 	nodeId, err := service.nodeMetadataRepository.InsertMetadataPublicKey(publicKey)
 	if err != nil {
-		panic(err)
+		return viewmodels.WalletKeysVM{}, err
 	}
 
 	return viewmodels.WalletKeysVM{
 		PublicKey:  publicKey,
 		PrivateKey: privateKeysExport,
 		NodeId:     nodeId,
-	}
+	}, nil
 }
