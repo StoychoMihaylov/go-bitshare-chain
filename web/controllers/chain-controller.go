@@ -25,7 +25,10 @@ type ChainControllerer interface {
 	// IsTheChainValid()
 }
 
-func NewChainController(ginRouter *gin.Engine, createWalletAccountCommandHandler *commands.CreateWalletAccountCommandHandler, metadataService *services.MetadataService) ChainControllerer {
+func NewChainController(
+	ginRouter *gin.Engine,
+	createWalletAccountCommandHandler *commands.CreateWalletAccountCommandHandler,
+	metadataService *services.MetadataService) ChainControllerer {
 	return &ChainController{
 		ginRouter:                         ginRouter,
 		createWalletAccountCommandHandler: createWalletAccountCommandHandler,
@@ -35,7 +38,7 @@ func NewChainController(ginRouter *gin.Engine, createWalletAccountCommandHandler
 
 func (controller *ChainController) SetupChainController() {
 	controller.ginRouter.POST("/api/create-wallet", controller.CreateNewWalletAccount)
-	controller.ginRouter.PUT("/api/set-block-signing-keys", controller.SetBlockSigningKeys)
+	controller.ginRouter.POST("/api/set-block-signing-keys", controller.SetBlockSigningKeys)
 }
 
 // "POST" "api/create-wallet"
@@ -60,8 +63,15 @@ func (controller *ChainController) CreateNewWalletAccount(context *gin.Context) 
 // "POST" "api/set-block-signing-keys"
 func (controller *ChainController) SetBlockSigningKeys(context *gin.Context) {
 	privateKey := context.Query("privateKey")
+	if privateKey == "" {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+		return
+	}
 
-	keys := controller.metadataService.CreateOrUpdateKeys(privateKey)
+	keys, err := controller.metadataService.CreateOrUpdateKeys(privateKey)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, err.Error())
+	}
 
 	context.JSON(http.StatusOK, keys)
 }
