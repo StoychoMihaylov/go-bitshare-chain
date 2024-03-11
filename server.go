@@ -19,8 +19,9 @@ func main() {
 	// Initialize dependencies
 	//DB
 	dbOptions := settings.MongoDbOptions{
-		DatabaseName:     "GoBitshareChain",
-		ConnectionString: "mongodb://root:rootpassword@go-bitshare-mongodb:27000/?authMechanism=SCRAM-SHA-256",
+		DatabaseName: "GoBitshareChain",
+		//ConnectionString: "mongodb://root:rootpassword@go-bitshare-mongodb:27017/?authMechanism=SCRAM-SHA-256",
+		ConnectionString: "mongodb://root:rootpassword@localhost:27000/?authMechanism=SCRAM-SHA-256",
 	}
 
 	mongoContext, err := mongo_context.NewMongoContext(&dbOptions)
