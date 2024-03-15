@@ -120,3 +120,20 @@ func (controller *ChainController) RequestTransaction(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Transaction signed successfully"})
 }
+
+// "POST" "/api/get-pending-transaction"
+func (controller *ChainController) GetPendingTransaction(c *gin.Context) {
+	var pendingTransactions []bindingmodels.TransactionBindingModel
+
+	// Iterate over all entries in the cache
+	controller.cache.Range(func(key, value interface{}) bool {
+		// Check if the value is of type TransactionBindingModel
+		if transaction, ok := value.(bindingmodels.TransactionBindingModel); ok {
+			// Append the transaction to the pendingTransactions slice
+			pendingTransactions = append(pendingTransactions, transaction)
+		}
+		return true // Continue iterating
+	})
+
+	c.JSON(http.StatusOK, pendingTransactions)
+}
