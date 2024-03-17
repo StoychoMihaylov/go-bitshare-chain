@@ -2,7 +2,9 @@ package bindingmodels
 
 import (
 	ecdsa "crypto/ecdsa"
+	elliptic "crypto/elliptic"
 	sha256 "crypto/sha256"
+	hex "encoding/hex"
 	errors "errors"
 	fmt "fmt"
 	big "math/big"
@@ -16,7 +18,13 @@ type TransactionBindingModel struct {
 }
 
 func (transaction *TransactionBindingModel) SignTransaction(signingKey *ecdsa.PrivateKey) error {
-	if transaction.FromAddress != fmt.Sprintf("%x", signingKey.X) {
+	publicKey := signingKey.PublicKey
+	publicKeyBytes := elliptic.Marshal(publicKey.Curve, publicKey.X, publicKey.Y)
+	fromAddress := sha256.Sum256(publicKeyBytes)
+
+	expectedFromAddress := hex.EncodeToString(fromAddress[:])
+
+	if expectedFromAddress != transaction.FromAddress {
 		return errors.New("you cannot sign transactions for other wallets")
 	}
 

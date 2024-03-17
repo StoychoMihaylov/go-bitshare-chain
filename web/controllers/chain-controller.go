@@ -5,10 +5,11 @@ import (
 	services "bitshare-chain/application/services"
 	bindingmodels "bitshare-chain/domain/binding-models"
 	enums "bitshare-chain/domain/enums"
-	bytes "bytes"
 	ecdsa "crypto/ecdsa"
 	elliptic "crypto/elliptic"
 	hex "encoding/hex"
+	errors "errors"
+	big "math/big"
 	http "net/http"
 	sync "sync"
 
@@ -48,6 +49,7 @@ func (controller *ChainController) SetupChainController() {
 	controller.ginRouter.POST("/api/create-wallet", controller.CreateNewWalletAccount)
 	controller.ginRouter.POST("/api/set-block-signing-keys", controller.SetBlockSigningKeys)
 	controller.ginRouter.POST("/api/request-transaction", controller.RequestTransaction)
+	controller.ginRouter.POST("/api/get-pending-transaction", controller.GetPendingTransaction)
 }
 
 // "POST" "api/create-wallet"
@@ -86,44 +88,64 @@ func (controller *ChainController) SetBlockSigningKeys(context *gin.Context) {
 }
 
 // "POST" "/api/request-transaction"
-func (controller *ChainController) RequestTransaction(c *gin.Context) {
+func (controller *ChainController) RequestTransaction(context *gin.Context) {
 
 	// !!! Temporary !!!
 	// Could also be signed in the front-end end sent to the back-end (probably more secured way since the private key is not traveling in the network)
 	// !!! Temporary !!!
 
 	var transactionBM bindingmodels.TransactionBindingModel
-	if err := c.BindJSON(&transactionBM); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+	if err := context.BindJSON(&transactionBM); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 		return
 	}
 
-	privateKey := c.Query("privateKey")
+	privateKey := context.Query("privateKey")
 	privateKeyBytes, err := hex.DecodeString(privateKey)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid private key"})
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid private key"})
 		return
 	}
 
-	privateKeyECDSA, err := ecdsa.GenerateKey(elliptic.P256(), bytes.NewReader(privateKeyBytes))
+	privateKeyECDSA, err := parsePrivateKey(privateKeyBytes)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate keys"})
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate keys"})
 		return
 	}
 
 	if err := transactionBM.SignTransaction(privateKeyECDSA); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	controller.cache.Store(enums.PendingTransactions, transactionBM)
 
-	c.JSON(http.StatusOK, gin.H{"message": "Transaction signed successfully"})
+	context.JSON(http.StatusOK, gin.H{"message": "Transaction signed successfully"})
+}
+
+func parsePrivateKey(privateKeyBytes []byte) (*ecdsa.PrivateKey, error) {
+	curve := elliptic.P256()
+	privateKey := new(ecdsa.PrivateKey)
+	privateKey.Curve = curve
+	privateKey.D = new(big.Int).SetBytes(privateKeyBytes)
+	privateKey.PublicKey.Curve = curve
+	privateKey.PublicKey.X, privateKey.PublicKey.Y = curve.ScalarBaseMult(privateKeyBytes)
+	if privateKey.PublicKey.X == nil || privateKey.PublicKey.Y == nil {
+		return nil, errors.New("invalid private key")
+	}
+	return privateKey, nil
 }
 
 // "POST" "/api/get-pending-transaction"
-func (controller *ChainController) GetPendingTransaction(c *gin.Context) {
+func (controller *ChainController) GetPendingTransaction(context *gin.Context) {
 	var pendingTransactions []bindingmodels.TransactionBindingModel
+
+	values, ok := controller.cache.Load(enums.PendingTransactions)
+	if !ok {
+		context.JSON(http.StatusOK, values)
+	} else {
+		context.JSON(http.StatusNotFound, "")
+	}
 
 	// Iterate over all entries in the cache
 	controller.cache.Range(func(key, value interface{}) bool {
@@ -135,5 +157,5 @@ func (controller *ChainController) GetPendingTransaction(c *gin.Context) {
 		return true // Continue iterating
 	})
 
-	c.JSON(http.StatusOK, pendingTransactions)
+	context.JSON(http.StatusOK, pendingTransactions)
 }

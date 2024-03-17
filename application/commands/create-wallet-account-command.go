@@ -27,21 +27,18 @@ func NewCreateWalletAccountCommandHandler(walletAccountRepository repositories.W
 }
 
 func (handler *CreateWalletAccountCommandHandler) Handle(context context.Context, command CreateWalletAccountCommand) (interface{}, error) {
-	// Generate public and private keys
 	publicKey, privateKey := handler.keyGenerator.GeneratePublicAndPrivateKey()
 
 	newWalletAccount := documents.WalletAccountDocument{
 		Address: publicKey,
 	}
 
-	// Create a new wallet account
 	err := handler.walletAccountRepository.CreateWalletAccount(&newWalletAccount)
 	if err != nil {
 		// Handle error accordingly
 		return nil, err
 	}
 
-	// Create a view model for wallet keys
 	walletKeysVM := viewmodels.NewWalletKeysVM(publicKey, privateKey, "")
 
 	// Convert to JSON response
