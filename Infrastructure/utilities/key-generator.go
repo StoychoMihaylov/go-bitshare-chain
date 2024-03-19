@@ -1,11 +1,11 @@
 package utilities
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
-	"encoding/hex"
-	"fmt"
+	ecdsa "crypto/ecdsa"
+	elliptic "crypto/elliptic"
+	rand "crypto/rand"
+	hex "encoding/hex"
+	fmt "fmt"
 	big "math/big"
 )
 
